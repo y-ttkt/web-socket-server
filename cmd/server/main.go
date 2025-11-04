@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/joho/godotenv"
 	"github.com/y-ttkt/web-socket-server/internal/handlers"
 	"log"
 	"net/http"
@@ -13,8 +14,15 @@ import (
 	"time"
 )
 
+func init() {
+	loadEnv()
+}
+
 func main() {
 	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "static/index.html")
+	})
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("OK"))
@@ -43,4 +51,11 @@ func main() {
 		log.Fatalf("server shutdown error: %v", err)
 	}
 	log.Println("server shutdown successfully")
+}
+
+func loadEnv() {
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 }
