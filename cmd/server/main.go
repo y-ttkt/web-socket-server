@@ -19,6 +19,8 @@ func init() {
 }
 
 func main() {
+	handlers.StartHub()
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "static/index.html")

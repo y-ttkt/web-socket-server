@@ -14,12 +14,14 @@ var upgrader = websocket.Upgrader{
 
 type Hub struct {
 	connections map[*websocket.Conn]bool
+	broadcast   chan []byte
 	register    chan *websocket.Conn
 	unregister  chan *websocket.Conn
 }
 
 var hub = Hub{
 	connections: make(map[*websocket.Conn]bool),
+	broadcast:   make(chan []byte),
 	register:    make(chan *websocket.Conn),
 	unregister:  make(chan *websocket.Conn),
 }
@@ -43,8 +45,12 @@ func WebsocketHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println("Error reading message:", err)
 			break
 		}
-		broadcastMessage(&hub, msg)
+		hub.broadcast <- msg
 	}
+}
+
+func StartHub() {
+	go hub.run()
 }
 
 func (h *Hub) run() {
@@ -59,17 +65,14 @@ func (h *Hub) run() {
 				log.Println("Removed connection")
 				c.Close()
 			}
-		}
-	}
-}
-
-// broadcastMessage 複数のクライアントに同一メッセージ返却
-func broadcastMessage(h *Hub, message []byte) {
-	for c := range h.connections {
-		if err := c.WriteMessage(websocket.TextMessage, message); err != nil {
-			log.Println("Error writing message:", err)
-			c.Close()
-			delete(h.connections, c)
+		case msg := <-h.broadcast:
+			for c := range h.connections {
+				if err := c.WriteMessage(websocket.TextMessage, msg); err != nil {
+					log.Println("Error writing message:", err)
+					c.Close()
+					delete(h.connections, c)
+				}
+			}
 		}
 	}
 }
