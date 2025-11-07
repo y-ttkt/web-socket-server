@@ -4,6 +4,7 @@ import (
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
+	"time"
 )
 
 var upgrader = websocket.Upgrader{
@@ -73,6 +74,19 @@ func (h *Hub) run() {
 					delete(h.connections, c)
 				}
 			}
+		}
+	}
+}
+
+func Heartbeat(c *websocket.Conn) {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		<-ticker.C
+		if err := c.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+			log.Println("Error writing ping:", err)
+			return
 		}
 	}
 }
